@@ -1,10 +1,10 @@
 EmCommands = Pry::CommandSet.new do
 
-  EM_DESCRIPTION = "Wait for a deferrable to succeed or fail, a timeout can be specified before the colon."
+  EM_DESCRIPTION = "Wait for a deferrable for a length of time (default 3 seconds). `em 3: EM::HttpRequest.new(url).get`"
   EM_CONFIG = {
     :keep_retval  => true,
     :interpolate  => false,
-    :listing      => "em[timeout=3]:",
+    :listing      => "em",
     :requires_gem => 'eventmachine'
   }
 
