@@ -9,6 +9,6 @@ Gem::Specification.new do |s|
   s.description = "em! is a synchronous wrapper around deferrables, so that you can interact with them as though they were normal function calls."
   s.files = ["lib/pry-em.rb", "README.markdown", "LICENSE.MIT"]
   s.require_path = "lib"
-  s.add_dependency 'pry'
+  s.add_dependency 'pry', '> 0.9.8'
   s.add_dependency 'eventmachine'
 end

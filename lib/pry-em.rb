@@ -1,36 +1,36 @@
 EmCommands = Pry::CommandSet.new do
 
-  EM_DESCRIPTION = "Wait for a deferrable for a length of time (default 3 seconds). `em 3: EM::HttpRequest.new(url).get`"
-  EM_CONFIG = {
-    :keep_retval  => true,
-    :interpolate  => false,
-    :listing      => "em",
-    :requires_gem => 'eventmachine'
-  }
+  create_command /\s*em\s*([0-9\.]*)\s*:(.*)/ do
 
-  command /\s*em\s*([0-9\.]*)\s*:(.*)/, EM_DESCRIPTION, EM_CONFIG do |timeout, source|
+    description "Wait for a deferrable for a length of time (default 3 seconds). `em 3: EM::HttpRequest.new(url).get`"
+    options(
+      :keep_retval  => true,
+      :interpolate  => false,
+      :listing      => "em",
+      :requires_gem => 'eventmachine'
+    )
 
-    # Boot EM before eval'ing the source as it's likely to depend on the reactor.
-    run_em_if_necessary!
+    def process(timeout, source)
+      # Boot EM before eval'ing the source as it's likely to depend on the reactor.
+      run_em_if_necessary!
 
-    # This can happen for example if you do:
-    #  em: EM::HttpRequest.new("http://www.google.com/").get.callback{ binding.pry }
-    # There ought to be a solution, but it will involve shunting either Pry or EM
-    # onto a new thread.
-    if EM.reactor_thread == Thread.current
-      raise "Could not wait for deferrable, you're in the EM thread!
-              If you don't know what to do, try `cd ..`, or just hit ctrl-C until it dies."
+      # This can happen for example if you do:
+      #  em: EM::HttpRequest.new("http://www.google.com/").get.callback{ binding.pry }
+      # There ought to be a solution, but it will involve shunting either Pry or EM
+      # onto a new thread.
+      if EM.reactor_thread == Thread.current
+        raise "Could not wait for deferrable, you're in the EM thread!
+                If you don't know what to do, try `cd ..`, or just hit ctrl-C until it dies."
+      end
+
+      deferrable = target.eval(source)
+
+      # TODO: Allow the user to configure the default timeout
+      timeout = timeout == "" ? 3 : Float(timeout)
+
+      wait_for_deferrable(deferrable, timeout) unless deferrable.nil?
     end
 
-    deferrable = target.eval(source)
-
-    # TODO: Allow the user to configure the default timeout
-    timeout = timeout == "" ? 3 : Float(timeout)
-
-    wait_for_deferrable(deferrable, timeout) unless deferrable.nil?
-  end
-
-  helpers do
     # Boot a new EventMachine reactor into another thread.
     # This allows us to continue to interact with the user on the front-end thread,
     # while they run event-machine commands in the background.
