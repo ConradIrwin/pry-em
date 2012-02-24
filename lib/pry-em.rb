@@ -2,13 +2,29 @@ EmCommands = Pry::CommandSet.new do
 
   create_command /\s*em\s*([0-9\.]*)\s*:(.*)/ do
 
-    description "Wait for a deferrable for a length of time (default 3 seconds). `em 3: EM::HttpRequest.new(url).get`"
+    description "Run code in eventmachine and wait for any Deferrable results."
     options(
       :keep_retval  => true,
       :interpolate  => false,
       :listing      => "em",
       :requires_gem => 'eventmachine'
     )
+
+    banner <<-BANNER
+      The em: command runs your code in an event machine context.
+
+      If your code returns a deferrable, it wil wait for that deferrable to succeed
+      or fail before returning you to Pry.
+
+      By default the em: command will wait forever for your deferrable to return
+      a result, if you'd like to wait for a shorter length of time, you can add
+      a timeout (in seconds) before the colon in em:.
+
+      e.g.
+        pry(main)> em 3: EM::HttpRequest.new("http://www.google.com").get
+        RuntimeError: Timeout after 3.0 seconds
+
+    BANNER
 
     def process(timeout, source)
       # We store the retval and the em-state in globals so that we can catch exceptions
