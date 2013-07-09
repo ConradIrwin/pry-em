@@ -33,7 +33,7 @@ EmCommands = Pry::CommandSet.new do
       #
       # We don't want to keep turning the reactor on and off, as that would limit some
       # of the things the user might want to do.
-      @@retval, @@em_state = [nil, :waiting]
+      $retval, $em_state = [nil, :waiting]
 
       # Boot EM before eval'ing the source as it's likely to depend on the reactor.
       run_em_if_necessary!
@@ -84,8 +84,8 @@ EmCommands = Pry::CommandSet.new do
     # confused.
     def handle_unexpected_error(e)
       if waiting?
-        @@em_state = :em_error
-        @@retval = e
+        $em_state = :em_error
+        $retval = e
       else
         output.puts "Unexpected exception from EventMachine reactor"
         _pry_.last_exception = e
@@ -106,43 +106,43 @@ EmCommands = Pry::CommandSet.new do
     def wait_for_deferrable(deferrable, timeout)
 
       if timeout
-        EM::Timer.new(timeout) { @@em_state = :timeout if waiting? }
+        EM::Timer.new(timeout) { $em_state = :timeout if waiting? }
       end
 
       [:callback, :errback].each do |method|
         begin
           deferrable.__send__ method do |*result|
-            @@em_state = method
-            @@retval = result.size > 1 ? result : result.first
+            $em_state = method
+            $retval = result.size > 1 ? result : result.first
           end
         rescue NoMethodError
-          @@retval = deferrable
-          @@em_state = :callback
+          $retval = deferrable
+          $em_state = :callback
           break
         end
       end
 
-      sleep 0.01 until @@em_state != :waiting
+      sleep 0.01 until $em_state != :waiting
 
-      raise "Timeout after #{timeout} seconds" if @@em_state == :timeout
+      raise "Timeout after #{timeout} seconds" if $em_state == :timeout
 
       # Use Pry's (admittedly nascent) handling for exceptions where possible.
-      raise @@retval if @@em_state != :callback && Exception === @@retval
+      raise $retval if $em_state != :callback && Exception === $retval
 
       # TODO: This doesn't interact well with the pager.
-      output.print "#{@@em_state} " if @@em_state != :callback
+      output.print "#{$em_state} " if $em_state != :callback
 
-      @@retval
+      $retval
 
-    # If the main thread is interrupted we must ensure that the @@em_state
+    # If the main thread is interrupted we must ensure that the $em_state
     # is no-longer :waiting so that handle_unexpected_error can do the
     # right thing.
     ensure
-      @@em_state = :interrupted if waiting?
+      $em_state = :interrupted if waiting?
     end
 
     def waiting?
-      @@em_state == :waiting
+      $em_state == :waiting
     end
   end
 end
